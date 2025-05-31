@@ -1,0 +1,56 @@
+
+services:
+  customer:
+    build:
+      context: ./customer
+    container_name: customer
+    environment:
+      - SERVER_PORT=8080
+      - TRACKING_SERVICE_URL=http://tracking-service:8081
+    ports:
+      - "8080:8080"
+    networks:
+      - conduktor-network
+    #    depends_on:
+    #      order-service:
+    #        condition: service_healthy
+    cap_add:
+      - NET_ADMIN
+    privileged: true
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/api/customer/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  tracking-service:
+    build: ./tracking-service
+    container_name: tracking-service
+    ports:
+      - "8081:8081"
+    networks:
+      - conduktor-network
+    environment:
+      - SERVER_PORT=8081
+    cap_add:
+      - NET_ADMIN
+    privileged: true
+
+  order-service:
+    build:
+      context: ./order-service
+    container_name: order-service
+    ports:
+      - "8443:8443"
+    networks:
+      - conduktor-network
+    command: /app/start.sh
+    healthcheck:
+      test: ["CMD", "curl", "--insecure", "-f", "https://localhost:8443/order/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  conduktor-network:
+    driver: bridge
