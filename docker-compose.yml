@@ -11,9 +11,6 @@ services:
       - "8080:8080"
     networks:
       - conduktor-network
-    #    depends_on:
-    #      order-service:
-    #        condition: service_healthy
     cap_add:
       - NET_ADMIN
     privileged: true
@@ -40,6 +37,8 @@ services:
     build:
       context: ./order-service
     container_name: order-service
+    volumes:
+      - ./order-service/certs/:/app/ssl/
     ports:
       - "8443:8443"
     networks:

@@ -6,12 +6,8 @@ COPY target/*.jar app.jar
 
 
 RUN mkdir -p /app/ssl
-COPY /src/main/resources/*.jks /app/ssl
-
-COPY /src/main/resources/start.sh /app/
 
 # Expose HTTPS port
-
 EXPOSE 8443
 
-CMD ["./start.sh"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
