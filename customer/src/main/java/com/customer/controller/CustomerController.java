@@ -6,6 +6,7 @@ import com.customer.service.OrderService;
 import com.customer.service.TrackingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,25 +44,48 @@ public class CustomerController {
     public ResponseEntity<Map<String, Object>> createOrder() {
         logger.info("Order endpoint called");
 
-        // Create a dummy order
-        Order dummyOrder = Order.createDummyOrder();
-        logger.info("Created dummy order with ID: {}", dummyOrder.getOrderId());
+        try {
+            // Create a dummy order
+            Order dummyOrder = Order.createDummyOrder();
+            logger.info("Created dummy order with ID: {}", dummyOrder.getOrderId());
 
-        // Print dummy data
-        logger.info("Dummy Order: Customer ID: {}, Product ID: {}, Quantity: {}, Price: ${}",
-                dummyOrder.getCustomerId(),
-                dummyOrder.getProductId(),
-                dummyOrder.getQuantity(),
-                dummyOrder.getPrice());
+            // Print dummy data
+            logger.info("Dummy Order: Customer ID: {}, Product ID: {}, Quantity: {}, Price: ${}",
+                    dummyOrder.getCustomerId(),
+                    dummyOrder.getProductId(),
+                    dummyOrder.getQuantity(),
+                    dummyOrder.getPrice());
 
-        // Send order to order service
-        Map<String, Object> response = orderService.createOrder(dummyOrder);
+            // Send order to order service
+            Map<String, Object> response = orderService.createOrder(dummyOrder);
 
-        // Add the original order details to the response
-        Map<String, Object> fullResponse = new HashMap<>(response);
-        fullResponse.put("originalOrder", dummyOrder);
+            // Add the original order details to the response
+            Map<String, Object> fullResponse = new HashMap<>(response);
+            fullResponse.put("originalOrder", dummyOrder);
 
-        return ResponseEntity.ok(fullResponse);
+            return ResponseEntity.ok(fullResponse);
+        } catch (Exception e) {
+            // Log the actual error for debugging
+            logger.error("Error processing order: {}", e.getMessage(), e);
+
+            // Check if it's a certificate error
+            boolean isCertificateError = e.getMessage() != null &&
+                    (e.getMessage().contains("certificate") ||
+                            e.getMessage().contains("SSL") ||
+                            e.getMessage().contains("PKIX"));
+
+            // Create a generic error response
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "ERROR");
+
+            if (isCertificateError) {
+                errorResponse.put("message", "Unable to process your request due to a connection issue");
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorResponse);
+            } else {
+                errorResponse.put("message", "An error occurred while processing your request: " + e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            }
+        }
     }
 
     @GetMapping("/tracking")
